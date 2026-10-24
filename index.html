@@ -88,8 +88,8 @@ button{font-family:inherit;cursor:pointer}
       <div><div id="n2">Player 2</div><b id="s2" style="color:var(--p2)">0</b></div>
     </div>
     <div class="card" id="howCard">
-      <div class="lbl"><span>📖 How to Play</span><button type="button" id="howBtn">Hide</button></div>
-      <div id="howBox"><ol>
+      <div class="lbl"><span>📖 How to Play</span><button type="button" id="howBtn">Show</button></div>
+      <div id="howBox" style="display:none"><ol>
         <li>Type both player names, then press <b>Start Game</b>.</li>
         <li>On your turn, pick a <b>category</b>.</li>
         <li>Answer within <b>10 seconds</b>.</li>
@@ -225,7 +225,7 @@ function genQ(pos,cat){
 // ---- Game flow ----
 const names=['Player 1','Player 2'];let cq=null,timer=null;
 ['name1','name2'].forEach((id,i)=>$(id).addEventListener('input',e=>{names[i]=e.target.value.trim()||'Player '+(i+1);$('n'+(i+1)).textContent=names[i];updTurn()}));
-function setStartUI(on){if(!on)setHow(true);$('beginBtn').style.display=on?'none':'block';$('name1').disabled=on;$('name2').disabled=on}
+function setStartUI(on){if(!on)setHow(false);$('beginBtn').style.display=on?'none':'block';$('name1').disabled=on;$('name2').disabled=on}
 function beginGame(){if(state.started||state.over)return;state.started=true;setStartUI(true);setHow(false);showCats()}
 $('beginBtn').onclick=beginGame;
 $('howBtn').onclick=()=>setHow($('howBox').style.display==='none');
