@@ -95,7 +95,7 @@ button{font-family:inherit;cursor:pointer}
         <li>Answer within <b>10 seconds</b>.</li>
         <li><b>Correct:</b> move 1–6 squares. <b>Wrong or time's up:</b> turn skipped.</li>
         <li><b>Ladders</b> take you up, <b>snakes</b> slide you down.</li>
-        <li>Land exactly on <b>square 100</b> to win!</li>
+        <li>Reach <b>square 100</b> to win!</li>
       </ol></div>
     </div>
     <div class="card">
@@ -172,8 +172,8 @@ Object.entries(snakes).forEach(([f,t])=>connector(+f,+t,'#1F5C3A',false));
 const tok=[0,1].map(i=>{const e=document.createElement('div');e.className='token p'+(i+1);e.textContent=i?'👩':'🧑';board.appendChild(e);return e});
 const OFF=[-6,6];
 function place(i,n){const p=xy(Math.max(1,Math.min(n,100)));tok[i].style.left=(p.x-8+OFF[i])+'px';tok[i].style.top=(p.y-2)+'px'}
-const state={pos:[0,0],cur:0,over:false};
-place(0,0);place(1,0);
+const state={pos:[1,1],cur:0,over:false};
+place(0,1);place(1,1);
 
 // ---- Scores (localStorage guarded) ----
 const KEY='bytequestScores';let scores=[0,0];
@@ -211,14 +211,21 @@ const bank={
    Q('General','What is technical debt?','Code shortcuts that cost more to maintain later','Unpaid licensing fees','Server costs')]
 };
 const CATS=['Programming','Design','Audio','General'],ICON={Programming:'💻',Design:'🎨',Audio:'🔊',General:'🎮'};
-const used={1:new Set(),2:new Set(),3:new Set()};
+const used=new Set(); // keys of questions already asked (kept across Reset Game)
 const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function genQ(pos,cat){
-  const lv=pos<30?1:pos<70?2:3;let c=bank[lv].map((item,i)=>({item,i})).filter(x=>x.item.category===cat);
-  if(!c.length)c=bank[lv].map((item,i)=>({item,i}));
-  if(c.every(x=>used[lv].has(x.i)))used[lv].clear();
-  let p;do{p=c[rand(0,c.length-1)]}while(used[lv].has(p.i));used[lv].add(p.i);
+  const lv=pos<30?1:pos<70?2:3,order=[lv,...[1,2,3].filter(l=>l!==lv)];
+  let all=[];order.forEach(l=>bank[l].forEach((item,i)=>{if(item.category===cat)all.push({item,key:l+'-'+i})}));
+  if(!all.length)order.forEach(l=>bank[l].forEach((item,i)=>all.push({item,key:l+'-'+i})));
+  // prefer unused questions at this level, then other levels of the same category
+  let pool=[];
+  for(const l of order){pool=all.filter(x=>x.key.startsWith(l+'-')&&!used.has(x.key));if(pool.length)break}
+  if(!pool.length){ // every question in this category was used: start the category over
+    all.forEach(x=>used.delete(x.key));
+    pool=all.filter(x=>x.key.startsWith(lv+'-'));if(!pool.length)pool=all;
+  }
+  const p=pool[rand(0,pool.length-1)];used.add(p.key);
   return{...p.item,move:rand(1,6)};
 }
 
@@ -273,8 +280,8 @@ function answer(sel,btn){
     if(ok)move(cq.move);else{msg(`${names[state.cur]} answered wrong (correct: "${cq.correct}"). Turn passes!`);endTurn()}},1400);
 }
 function move(m){
-  const i=state.cur,start=state.pos[i],target=start+m;
-  if(target>100){msg(`${names[i]} answered correctly but overshoots square 100. Turn passes!`);endTurn();return}
+  const i=state.cur,start=state.pos[i],target=Math.min(start+m,100);
+  m=target-start; // reaching or passing 100 counts as a win
   let p=start,c=0;
   (function step(){
     if(c<m){p++;place(i,p);c++;setTimeout(step,180);return}
@@ -295,9 +302,9 @@ function win(i){
 }
 $('startBtn').onclick=showCats;
 $('resetBtn').onclick=()=>{
-  stopTimer();state.pos=[0,0];state.cur=0;state.over=false;
+  stopTimer();state.pos=[1,1];state.cur=0;state.over=false;
   $('winner').style.display='none';msg('Answer correctly to move forward. Wrong answer, and you stay put! First to square 100 wins.');
-  place(0,0);place(1,0);$('startBtn').disabled=false;$('quizBox').style.display='none';$('catBox').style.display='none';$('startBtn').style.display='block';updTurn();state.started=false;setStartUI(false);msg('Type your names, then press Start Game.');
+  place(0,1);place(1,1);$('startBtn').disabled=false;$('quizBox').style.display='none';$('catBox').style.display='none';$('startBtn').style.display='block';updTurn();state.started=false;setStartUI(false);msg('Type your names, then press Start Game.');
 };
 $('resetScoresBtn').onclick=()=>{scores=[0,0];saveScores();updScores()};
 $('muteBtn').onclick=()=>{const m=!SFX.isMuted();SFX.setMuted(m);$('muteBtn').textContent=m?'🔇 Sound Off':'🔊 Sound On'};
